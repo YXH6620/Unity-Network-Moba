@@ -25,6 +25,16 @@ namespace Game.Net
 
         public byte[] buffer; // 最终要发送的数据 或 收到的数据
 
+        /// <summary>
+        /// 构建请求报文
+        /// </summary>
+        /// <param name="endPoint"></param>
+        /// <param name="session"></param>
+        /// <param name="sn"></param>
+        /// <param name="moduleID"></param>
+        /// <param name="messageType"></param>
+        /// <param name="messageID"></param>
+        /// <param name="proto"></param>
         public BufferEntity(IPEndPoint endPoint, int session, int sn, int moduleID, int messageType, int messageID, byte[] proto)
         {
             protoSize = proto.Length;
@@ -35,6 +45,37 @@ namespace Game.Net
             this.messageType = messageType;
             this.messageID = messageID;
             this.proto = proto; 
+        }
+
+        /// <summary>
+        /// 构建接收到的报文实体
+        /// </summary>
+        /// <param name="endPoint">终端IP和端口</param>
+        /// <param name="buffer">收到的数据</param>
+        public BufferEntity(IPEndPoint endPoint, byte[] buffer)
+        {
+            this.endPoint = endPoint;
+            this.buffer = buffer;
+
+            Decode();
+        }
+
+        /// <summary>
+        /// ACK报文实体
+        /// </summary>
+        /// <param name="package"></param>
+        public BufferEntity(BufferEntity package)
+        {
+            protoSize = 0;
+            this.endPoint = package.endPoint; 
+            this.session= package.session; 
+            this.sn = package.sn;
+            this.moduleID = package.moduleID;
+            this.time = package.time;
+            this.messageType = package.messageType;
+            this.messageID = package.messageID;
+
+            buffer = Encoder(true);
         }
 
         // 编码接口 Encoder, ACK确认报文，业务报文
@@ -70,6 +111,32 @@ namespace Game.Net
 
             buffer = data;
             return data;
+        }
+
+        // 将报文反序列化 为成员
+        private void Decode()
+        {
+            protoSize = BitConverter.ToInt32(buffer, 0); // 从0的位置，取4个字节转化成int
+            session = BitConverter.ToInt32(buffer, 4);
+            sn = BitConverter.ToInt32(buffer, 8);
+            moduleID = BitConverter.ToInt32(buffer, 12);
+
+            time = BitConverter.ToInt64(buffer, 16);
+
+            messageType = BitConverter.ToInt32(buffer, 24);
+            messageID = BitConverter.ToInt32(buffer, 28);
+
+            // 
+            if(messageType == 0)
+            {
+
+            }
+            else
+            {
+                proto = new byte[protoSize];
+                // 将buffer里剩下的数据 复制到protp 得到最终的业务数据
+                Array.Copy(buffer, 32, proto, 0, protoSize);
+            }
         }
     }
 }
